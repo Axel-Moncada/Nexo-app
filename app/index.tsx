@@ -15,6 +15,8 @@ import {
 
 import { ImageBackground } from "react-native";
 
+import { supabase } from "../lib/supabase";
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -28,11 +30,21 @@ export default function Login() {
       Alert.alert("Error", "Correo inválido o contraseña muy corta (mín. 6).");
       return;
     }
+    
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
+
+    setLoading(false);
+
+    if (loginError) {
+      Alert.alert("Error", 'Usuario o contraseña incorrecta');
+    } else {
       router.replace("/home");
-    }, 700);
+    }
   };
 
   return (
@@ -96,7 +108,11 @@ export default function Login() {
         <View style={{ alignItems: "center" }}>
           <Text style={{ fontSize: 12, color: "#174b93" }}>
             ¿No tienes una cuenta?{" "}
-            <Text style={{ fontWeight: "700" }}>Regístrate</Text>
+            <Pressable onPress={() => router.push("/singup")}>
+              <Text style={{ fontWeight: "700", color: "#174b93", textDecorationLine: "underline" }}>
+                Regístrate
+              </Text>
+            </Pressable>
           </Text>
         </View>
       </KeyboardAvoidingView>

@@ -1,5 +1,6 @@
 import BottomNavigation from "@/componentes/menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useFavorites } from "@/providers/FavoritesProvider";
 import {
     FlatList,
     Image,
@@ -9,48 +10,81 @@ import {
     StyleSheet,
     Text,
     TextInput,
-    View
+    View,
+    ActivityIndicator,
+    Modal,
+    TouchableOpacity,
+    Dimensions
 } from "react-native";
 
 export default function Home() {
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState(0);
-
+  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "VASK Corduroy Utility Jacket",
-      price: "$65.00",
-      rating: 4.5,
-      image: "https://via.placeholder.com/150x150/4a90e2/ffffff?text=Jacket",
-      isFavorite: false
-    },
-    {
-      id: 2,
-      name: "MONSA Oversized Graphic Jacket",
-      price: "$42.00",
-      rating: 4.6,
-      image: "https://via.placeholder.com/150x150/e74c3c/ffffff?text=Graphic",
-      isFavorite: true
-    },
-    {
-      id: 3,
-      name: "HALLEN Vest",
-      price: "$68.00",
-      rating: 4.8,
-      image: "https://via.placeholder.com/150x150/27ae60/ffffff?text=Vest",
-      isFavorite: false
-    },
-    {
-      id: 4,
-      name: "T-shirt Basic Cotton combad 24s",
-      price: "$45",
-      rating: 4.5,
-      image: "https://via.placeholder.com/150x150/f39c12/ffffff?text=T-shirt",
-      isFavorite: false
+  // Usar el contexto de favoritos
+  const { favorites, products, toggleFavorite, setProducts } = useFavorites();
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  // Filtrar productos basado en el texto de búsqueda
+  const filteredProducts = products.filter((product: any) =>
+    product.name.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  // Función para manejar favoritos
+  const btnfavorito = (id: number) => {
+    toggleFavorite(id);
+  };
+
+  // Función para verificar si un producto es favorito
+  const isFavorite = (id: number) => {
+    return favorites.includes(id);
+  };
+
+  // Función para abrir el modal con información del producto
+  const openProductModal = (product: any) => {
+    setSelectedProduct(product);
+    setModalVisible(true);
+  };
+
+  // Función para cerrar el modal
+  const closeProductModal = () => {
+    setModalVisible(false);
+    setSelectedProduct(null);
+  };
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('https://fakestoreapi.com/products');
+      const data = await response.json();
+
+
+      const Products = data.filter((product: any) => product.category === "men's clothing" || product.category === "women's clothing");
+
+      const transformedProducts = Products.map((product: any) => ({
+        id: product.id,
+        name: product.title,
+        price: `$${product.price}`,
+        rating: product.rating.rate,
+        image: product.image,
+        description: product.description, // Agregar descripción
+        category: product.category, // Agregar categoría
+        isFavorite: false
+      }));
+      
+      setProducts(transformedProducts);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   type item = {
     id: number;
@@ -58,29 +92,41 @@ export default function Home() {
     price: string;
     rating: number;
     image: string;
+    description?: string; // Agregar descripción opcional
+    category?: string; // Agregar categoría opcional
     isFavorite: boolean;
   };
 
-  const renderProduct = ({ item }: { item: item }) => (
-    <View style={styles.productCard}>
-      <View style={styles.productImageContainer}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-        <Pressable style={styles.favoriteButton}>
-          <Text style={[styles.favoriteIcon, item.isFavorite && styles.favoriteActive]}>
-            {item.isFavorite ? "❤️" : "🤍"}
-          </Text>
-        </Pressable>
-      </View>
-      <View style={styles.productInfo}>
-        <View style={styles.ratingContainer}>
-          <Text style={styles.star}>⭐</Text>
-          <Text style={styles.rating}>{item.rating}</Text>
+  const renderProduct = ({ item }: { item: item }) => {
+    const isItemFavorite = isFavorite(item.id);
+    
+    return (
+      <Pressable style={styles.productCard} onPress={() => openProductModal(item)}>
+        <View style={styles.productImageContainer}>
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+          <Pressable 
+            style={styles.favoriteButton} 
+            onPress={(e) => {
+              e.stopPropagation(); // Evita que se abra el modal cuando tocas el corazón
+              btnfavorito(item.id);
+            }}
+          >
+            <Text style={[styles.favoriteIcon, isItemFavorite && styles.favoriteActive]}>
+              {isItemFavorite ? "❤️" : "🤍"}
+            </Text>
+          </Pressable>
         </View>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>{item.price}</Text>
-      </View>
-    </View>
-  );
+        <View style={styles.productInfo}>
+          <View style={styles.ratingContainer}>
+            <Text style={styles.star}>⭐</Text>
+            <Text style={styles.rating}>{item.rating}</Text>
+          </View>
+          <Text style={styles.productName}>{item.name}</Text>
+          <Text style={styles.productPrice}>{item.price}</Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -115,26 +161,99 @@ export default function Home() {
               Oferta especial{'\n'}hasta 50% de descuento
             </Text>
             <Pressable style={styles.shopNowButton}>
-              <Text style={styles.shopNowText}>Shop Now</Text>
+              <Text style={styles.shopNowText}>Comprar ahora</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Best Seller Section */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Best seller of the month</Text>
+          <Text style={styles.sectionTitle}>Más vendidos del mes</Text>
         </View>
 
         {/* Products Grid */}
-        <FlatList
-          data={featuredProducts}
-          renderItem={renderProduct}
-          numColumns={2}
-          columnWrapperStyle={styles.productRow}
-          scrollEnabled={false}
-          showsVerticalScrollIndicator={false}
-        />
+        {loading ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#a4e635" />
+            <Text style={{ marginTop: 10, color: '#666' }}>Cargando productos...</Text>
+          </View>
+        ) : filteredProducts.length > 0 ? (
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderProduct}
+            keyExtractor={(item) => item.id.toString()}
+            numColumns={2}
+            columnWrapperStyle={styles.productRow}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, color: '#666', textAlign: 'center' }}>
+              {searchText ? `No se encontraron productos para "${searchText}"` : 'No hay productos disponibles'}
+            </Text>
+          </View>
+        )}
       </ScrollView>
+
+      {/* Product Detail Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeProductModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {selectedProduct && (
+              <>
+                {/* Modal Header */}
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Detalles del producto</Text>
+                  <TouchableOpacity onPress={closeProductModal} style={styles.closeButton}>
+                    <Text style={styles.closeButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Product Image */}
+                <Image source={{ uri: selectedProduct.image }} style={styles.modalImage} />
+                
+                {/* Product Info */}
+                <View style={styles.modalProductInfo}>
+                  <View style={styles.modalRatingContainer}>
+                    <Text style={styles.modalStar}>⭐</Text>
+                    <Text style={styles.modalRating}>{selectedProduct.rating}</Text>
+                  </View>
+                  
+                  <Text style={styles.modalProductName}>{selectedProduct.name}</Text>
+                  <Text style={styles.modalProductPrice}>{selectedProduct.price}</Text>
+                  
+                  {/* Description (if available from API) */}
+                  {selectedProduct.description && (
+                    <Text style={styles.modalDescription}>{selectedProduct.description}</Text>
+                  )}
+                  
+                  {/* Action Buttons */}
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity 
+                      style={styles.favoriteModalButton} 
+                      onPress={() => btnfavorito(selectedProduct.id)}
+                    >
+                      <Text style={styles.favoriteModalButtonText}>
+                        {isFavorite(selectedProduct.id) ? "❤️ Quitar de favoritos" : "🤍 Agregar a favoritos"}
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.addToCartButton}>
+                      <Text style={styles.addToCartButtonText}>🛒 Agregar al carrito</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Bottom Navigation */}
       <BottomNavigation activeTab={activeTab} />
@@ -329,5 +448,114 @@ const styles = StyleSheet.create({
   },
   navActive: {
     color: "#a4e635"
-  }
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    margin: 20,
+    borderRadius: 16,
+    padding: 0,
+    maxHeight: '90%',
+    width: '90%',
+    elevation: 5,
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modalImage: {
+    width: '100%',
+    height: 250,
+    resizeMode: 'contain',
+    backgroundColor: '#f9fafb',
+  },
+  modalProductInfo: {
+    padding: 20,
+  },
+  modalRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalStar: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  modalRating: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  },
+  modalProductName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  modalProductPrice: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 16,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    gap: 12,
+  },
+  favoriteModalButton: {
+    backgroundColor: '#f3f4f6',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  favoriteModalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  addToCartButton: {
+    backgroundColor: '#a4e635',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  addToCartButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+  },
 });
