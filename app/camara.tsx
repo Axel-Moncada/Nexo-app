@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
     elevation: 2,
-    shadowOpacity: 0.1,
+    boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.1)",
   },
   photoButtonContent: {
     alignItems: "center",
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexDirection: "row",
     elevation: 1,
-    shadowOpacity: 0.05,
+    boxShadow: "0px 1px 4px rgba(0, 0, 0, 0.05)",
   },
   reviewImage: {
     width: 80,

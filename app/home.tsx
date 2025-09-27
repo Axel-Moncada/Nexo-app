@@ -1,20 +1,20 @@
 import BottomNavigation from "@/componentes/menu";
-import { useState, useEffect } from "react";
+import { useCart } from "@/providers/CartProvider";
 import { useFavorites } from "@/providers/FavoritesProvider";
+import { useEffect, useState } from "react";
 import {
-    FlatList,
-    Image,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-    ActivityIndicator,
-    Modal,
-    TouchableOpacity,
-    Dimensions
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Modal,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 export default function Home() {
@@ -24,8 +24,9 @@ export default function Home() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   
-  // Usar el contexto de favoritos
+  // Usar el contexto de favoritos y carrito
   const { favorites, products, toggleFavorite, setProducts } = useFavorites();
+  const { addToCart } = useCart();
 
   useEffect(() => {
     fetchProducts();
@@ -92,8 +93,8 @@ export default function Home() {
     price: string;
     rating: number;
     image: string;
-    description?: string; // Agregar descripción opcional
-    category?: string; // Agregar categoría opcional
+    description?: string; 
+    category?: string; 
     isFavorite: boolean;
   };
 
@@ -107,7 +108,7 @@ export default function Home() {
           <Pressable 
             style={styles.favoriteButton} 
             onPress={(e) => {
-              e.stopPropagation(); // Evita que se abra el modal cuando tocas el corazón
+              e.stopPropagation(); 
               btnfavorito(item.id);
             }}
           >
@@ -244,7 +245,13 @@ export default function Home() {
                       </Text>
                     </TouchableOpacity>
                     
-                    <TouchableOpacity style={styles.addToCartButton}>
+                    <TouchableOpacity 
+                      style={styles.addToCartButton}
+                      onPress={() => {
+                        addToCart(selectedProduct);
+                        closeProductModal();
+                      }}
+                    >
                       <Text style={styles.addToCartButtonText}>🛒 Agregar al carrito</Text>
                     </TouchableOpacity>
                   </View>

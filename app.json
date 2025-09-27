@@ -1,22 +1,28 @@
 {
   "expo": {
-    "name": "Nexo-app",
-    "slug": "Nexo-app",
+    "name": "Nexo App",
+    "slug": "nexo-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "nexoapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "App de ecommerce con carrito de compras y sistema de favoritos",
+    "privacy": "public",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.axel.nexoapp",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.axel.nexoapp",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
